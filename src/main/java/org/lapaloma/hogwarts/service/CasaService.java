@@ -1,76 +1,45 @@
-/**
- * 
- */
-package org.lapaloma.hogwarts.service;
+@RestController
+@RequestMapping("/hogwarts/casas")
+public class CasaController {
 
-import java.util.List;
+    private final CasaService casaService;
 
-import org.lapaloma.hogwarts.dao.ICasaDAO;
-import org.lapaloma.hogwarts.excepcion.CasaNoEncontradaException;
-import org.lapaloma.hogwarts.vo.Casa;
-import org.springframework.stereotype.Service;
-
-@Service
-public class CasaService {
-
-    private final ICasaDAO casaDAO;
-
-    // Spring inyecta el DAO automáticamente
-    public CasaService(ICasaDAO casaDAO) {
-        this.casaDAO = casaDAO;
-    }
-    
-    
-    public Casa obtenerCasaPorClave(Integer identificador) {
-    	
-    	
-        if (identificador == null ||  identificador <= 0) {
-            throw new IllegalArgumentException("Código inválido");
-        }
-
-        Casa Casa = casaDAO.obtenerCasaPorClave(identificador);
-
-        
-        if (Casa == null) {
-            throw new CasaNoEncontradaException(
-                    "No existe una casa con idenficador: " + identificador
-            );
-        }
-    	
-        return Casa;
+    public CasaController(CasaService casaService) {
+        this.casaService = casaService;
     }
 
-    public List<Casa> obtenerListaCasas() {
+    @GetMapping
+    public ResponseEntity<List<Casa>> getAll() {
+        List<Casa> casas = casaService.obtenerListaCasas();
 
-        List<Casa> lista = casaDAO.obtenerListaCasas();
-
-        // Esto provoca error
-        //lista = null;
-        
-        if (lista == null || lista.isEmpty()) {
-            throw new RuntimeException("No hay casas disponibles");
-        }
-
-        return lista;
+        return (casas == null || casas.isEmpty())
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(casas);
     }
 
-    public List<Casa> obtenerCasaPorNombre(String nombre) {
+    @GetMapping("/id/{id}")
+    public ResponseEntity<Casa> getById(@PathVariable Integer id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
 
+        Casa casa = casaService.obtenerCasaPorClave(id);
+
+        return (casa != null)
+                ? ResponseEntity.ok(casa)
+                : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/nombre/{nombre}")
+    public ResponseEntity<List<Casa>> getByNombre(@PathVariable String nombre) {
         if (nombre == null || nombre.isBlank()) {
-            throw new IllegalArgumentException("Nombre inválido");
+            return ResponseEntity.badRequest().build();
         }
 
-        List<Casa> lista = casaDAO.obtenerCasaPorNombre(nombre);
+        List<Casa> casas = casaService.obtenerCasaPorNombre(nombre);
 
-        // Esto provoca error s
-        //ista =null;
-        
-        if (lista == null || lista.isEmpty()) {
-            throw new CasaNoEncontradaException(
-                    "No existen casas con nombre: " + nombre
-            );
-        }
-
-        return lista;
+        return (casas == null || casas.isEmpty())
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(casas);
     }
 }
